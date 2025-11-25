@@ -1,4 +1,4 @@
-package aoc._2024;
+package aoc._2025;
 
 import java.util.List;
 import org.slf4j.LoggerFactory;
@@ -10,7 +10,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 
 /**
- * https://adventofcode.com/2024/day/${day}
+ * https://adventofcode.com/2025/day/${day}
  * 
  * @author Paul Cormier
  *
