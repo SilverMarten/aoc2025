@@ -1,0 +1,98 @@
+plugins {
+    id 'java'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+dependencies {
+    implementation 'org.jgrapht:jgrapht-core:1.5.2',
+                   'org.jgrapht:jgrapht-ext:1.5.2'
+    implementation 'org.apache.commons:commons-lang3:latest.release',
+                   'org.apache.commons:commons-collections4:latest.release'
+                   
+    implementation 'org.slf4j:slf4j-api:latest.release',
+                   'ch.qos.logback:logback-classic:latest.release'
+    
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:latest.release'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:latest.release'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// Create a new DayN.java file from the template.
+tasks.register('newDay', Copy){
+    
+    def targetDir = '/src/main/java/aoc/_2025/'
+    
+    def nextDay = file(targetDir).listFiles()
+                                 .findAll { it.name ==~ /Day.*.java/ }
+                                 .size() + 1
+    
+    logger.lifecycle('Generating Day {}', nextDay)
+
+    from 'src/main/java-templates/Day.java'
+    
+    into targetDir
+    
+    rename { 
+        def fileName = 'Day' + nextDay + '.java'
+        logger.info('New file name: {}', fileName)
+        
+        if(file(targetDir + fileName).exists())
+            throw new GradleException('Destination file "' + fileName + '" already exists!')
+
+        fileName;
+    }
+    
+    expand(day: nextDay)
+    
+    doLast {
+        // Create input files
+        def resources = 'src/main/resources/'
+        def inputFile = file(resources + 'input/Day' + nextDay + '.txt')
+        def testInputFile = file(resources + 'testInput/Day' + nextDay + '.txt')
+        
+        if(inputFile.exists() && inputFile.size() > 0)
+            throw new GradleException('Destination file "' + inputFile + '" already exists!')
+        inputFile.text = ''
+        // Download the puzzle input
+        if(project.hasProperty('sessionId')){
+            try {
+                def con = null
+				// Configure proxy, if settings are present
+				if(project.hasProperty("proxyHost")){
+    				def proxy = null
+    				def proxyAuth = "" 
+					proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("$proxyHost", Integer.parseInt("$proxyPort")))
+					Authenticator.setDefault(new Authenticator() {
+						protected PasswordAuthentication getPasswordAuthentication() {
+					        return new PasswordAuthentication("$proxyUser", "$proxyPassword".toCharArray());
+					    }
+					});
+					proxyAuth = "Basic " + new String(Base64.getEncoder().encode(("$proxyUser" + ":" + "$proxyPassword").getBytes()))
+                    con = new URL('https://adventofcode.com/2025/day/' + nextDay + '/input').openConnection(proxy)
+                    con.addRequestProperty("Proxy-Authorization", proxyAuth)
+				} else {
+                    con = new URL('https://adventofcode.com/2025/day/' + nextDay + '/input').openConnection()
+                }
+                con.setRequestMethod("GET")
+                con.addRequestProperty("Cookie","session=$sessionId")
+                BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()))
+                
+                inputFile.withOutputStream{ it << in }
+            } catch (java.io.IOException e){
+                project.logger.lifecycle("Could not download puzzle input", e)
+            }
+        }
+        
+        if(testInputFile.exists() && inputFile.size() > 0)
+            throw new GradleException('Destination file "' + testInputFile + '" already exists!')
+        testInputFile.text = ''
+    }
+}
