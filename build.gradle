@@ -31,9 +31,9 @@ tasks.register('newDay', Copy){
     
     def targetDir = '/src/main/java/aoc/_2025/'
     
-    def nextDay = file(targetDir).listFiles()
-                                 .findAll { it.name ==~ /Day.*.java/ }
-                                 .size() + 1
+    def nextDay = '%02d'.formatted(file(targetDir).listFiles()
+				                                  .findAll { it.name ==~ /Day.*.java/ }
+				                                  .size() + 1)
     
     logger.lifecycle('Generating Day {}', nextDay)
 
