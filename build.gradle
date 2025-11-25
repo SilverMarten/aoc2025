@@ -9,8 +9,9 @@ java {
 }
 
 dependencies {
-    implementation 'org.jgrapht:jgrapht-core:1.5.2',
-                   'org.jgrapht:jgrapht-ext:1.5.2'
+    implementation 'org.jgrapht:jgrapht-core:latest.release',
+                   'org.jgrapht:jgrapht-ext:latest.release',
+                   'org.jgrapht:jgrapht-io:latest.release'
     implementation 'org.apache.commons:commons-lang3:latest.release',
                    'org.apache.commons:commons-collections4:latest.release'
                    
@@ -62,7 +63,7 @@ tasks.register('newDay', Copy){
             throw new GradleException('Destination file "' + inputFile + '" already exists!')
         inputFile.text = ''
         // Download the puzzle input
-        if(project.hasProperty('sessionId')){
+        if(hasProperty('sessionId')){
             try {
                 def con = null
 				// Configure proxy, if settings are present
