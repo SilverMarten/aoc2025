@@ -53,12 +53,12 @@ public class Day01 {
         log.info(resultMessage, part1(lines));
 
         // PART 2
-        resultMessage = "{}";
+        resultMessage = "The password to open the door is {}";
 
         log.info("Part 2:");
         log.setLevel(Level.DEBUG);
 
-        expectedTestResult = 1_234_567_890;
+        expectedTestResult = 6;
         testResult = part2(testLines);
 
         log.info("Should be {}", expectedTestResult);
@@ -75,7 +75,7 @@ public class Day01 {
 
 
     /**
-     * STarting from 50, follow the turns given in the lines, and count the
+     * Starting from 50, follow the turns given in the lines, and count the
      * number of times it stops on 0.
      * 
      * @param lines The lines read from the input.
@@ -98,13 +98,42 @@ public class Day01 {
 
 
     /**
+     * Starting from 50, follow the turns given in the lines, and count the
+     * number of times it passes 0.
      * 
      * @param lines The lines read from the input.
      * @return The value calculated for part 2.
      */
     private static long part2(final List<String> lines) {
 
-        return -1;
+        AtomicInteger dial = new AtomicInteger(50);
+        AtomicInteger count = new AtomicInteger();
+
+        lines.stream()
+             .map(l -> l.replace('R', '+').replace('L', '-'))
+             .mapToInt(Integer::valueOf)
+             .forEach(i -> {
+
+                 // Turn the dial
+                 int pointTo = dial.addAndGet(i);
+
+                 log.debug("The dial is rotated {} to point to {} ({})", i, (pointTo + 1000) % 100, pointTo);
+
+                 // If the new value is the same as the change, then it started at 0; don't count it.
+                 // If the new value went past 100 or 0, count how many times.
+                 if (i != pointTo && (pointTo >= 100 || pointTo <= 0)) {
+                     var delta = Math.abs(pointTo) / 100 + i < 0 ? 1 : 0;
+                     count.addAndGet(delta);
+                     log.debug("  during this rotation, it points at 0, {} times.", delta);
+                 }
+
+                 // Reset the modulus
+                 dial.getAndSet((pointTo + 1000) % 100);
+             });
+
+        // 2421 is too low...
+
+        return count.longValue();
     }
 
 }
