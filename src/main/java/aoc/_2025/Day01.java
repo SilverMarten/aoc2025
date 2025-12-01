@@ -119,13 +119,12 @@ public class Day01 {
 
                  log.debug("The dial is rotated {} to point to {} ({})", i, (pointTo + 1000) % 100, pointTo);
 
-                 // If the new value is the same as the change, then it started at 0; don't count it.
-                 // If the new value went past 100 or 0, count how many times.
-                 if (i != pointTo && (pointTo >= 100 || pointTo <= 0)) {
-                     var delta = Math.abs(pointTo) / 100 + i < 0 ? 1 : 0;
-                     count.addAndGet(delta);
+                 // If the new value is negative (or 0), and it didn't start at 0, add 1 to the multiples of 100
+                 var delta = Math.abs(pointTo / 100);
+                 delta += (pointTo <= 0 && i != pointTo) ? 1 : 0;
+                 count.addAndGet(delta);
+                 if (delta > 0)
                      log.debug("  during this rotation, it points at 0, {} times.", delta);
-                 }
 
                  // Reset the modulus
                  dial.getAndSet((pointTo + 1000) % 100);
