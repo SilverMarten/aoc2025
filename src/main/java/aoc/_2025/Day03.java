@@ -35,7 +35,7 @@ public class Day03 {
         // Read the test file
         List<String> testLines = FileUtils.readFile(TEST_INPUT_TXT);
 
-        var expectedTestResult = 357;
+        var expectedTestResult = 357L;
         var testResult = part1(testLines);
 
         log.info("Should be {}", expectedTestResult);
@@ -52,12 +52,12 @@ public class Day03 {
         log.info(resultMessage, part1(lines));
 
         // PART 2
-        resultMessage = "{}";
+        resultMessage = "The total output joltage is {}";
 
         log.info("Part 2:");
         log.setLevel(Level.DEBUG);
 
-        expectedTestResult = 1_234_567_890;
+        expectedTestResult = 3_121_910_778_619L;
         testResult = part2(testLines);
 
         log.info("Should be {}", expectedTestResult);
@@ -83,7 +83,7 @@ public class Day03 {
     private static long part1(final List<String> lines) {
 
         return lines.stream()
-                    .mapToInt(Day03::findLargestJoltage)
+                    .mapToInt(l -> Day03.findLargestJoltage(l, 2))
                     .sum();
 
     }
@@ -91,14 +91,14 @@ public class Day03 {
 
 
     /**
-     * Scan a line of digits and find the largest two-digit number that can be
+     * Scan a line of digits and find the largest n-digit number that can be
      * read from left to right.
      * 
      * @param line The line of digits to scan.
-     * @return The value of the largest two-digit number that can be read from
+     * @return The value of the largest n-digit number that can be read from
      *         left to right.
      */
-    private static int findLargestJoltage(String line) {
+    private static int findLargestJoltage(String line, int length) {
 
         char firstDigit = '?';
 
@@ -130,13 +130,19 @@ public class Day03 {
 
 
     /**
+     * Scan a line of digits and find the largest twelve-digit number that can
+     * be read from left to right.
      * 
      * @param lines The lines read from the input.
-     * @return The value calculated for part 2.
+     * @return The value of the largest twelve-digit number that can be read
+     *         from left to right.
      */
     private static long part2(final List<String> lines) {
 
-        return -1;
+        return lines.stream()
+                    .mapToInt(l -> Day03.findLargestJoltage(l, 12))
+                    .sum();
+
     }
 
 }
