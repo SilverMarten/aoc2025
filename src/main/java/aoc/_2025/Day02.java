@@ -65,7 +65,7 @@ public class Day02 {
         resultMessage = "{}";
 
         log.info("Part 2:");
-        log.setLevel(Level.TRACE);
+        log.setLevel(Level.DEBUG);
 
         expectedTestResult = 4_174_379_265L;
         testResult = part2(testRanges);
@@ -157,7 +157,7 @@ public class Day02 {
         log.trace("Checking {}, {} times", halfRange, repeats);
 
         return IntStream.rangeClosed(halfRange.getMinimum(), halfRange.getMaximum())
-                        .mapToLong(i -> Long.valueOf(StringUtils.repeat("%1$d", repeats).formatted(i)))
+                        .mapToLong(i -> Long.valueOf("%1$d".repeat(repeats).formatted(i)))
                         .filter(range::contains)
                         .boxed()
                         .toList();
