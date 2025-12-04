@@ -1,6 +1,8 @@
 package aoc._2025;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.collections4.SetUtils;
 import org.slf4j.LoggerFactory;
@@ -54,12 +56,12 @@ public class Day04 {
         log.info(resultMessage, part1(lines));
 
         // PART 2
-        resultMessage = "{}";
+        resultMessage = "{} rolls of paper in total can be removed by the Elves and their forklifts.";
 
         log.info("Part 2:");
         log.setLevel(Level.DEBUG);
 
-        expectedTestResult = 1_234_567_890;
+        expectedTestResult = 43;
         testResult = part2(testLines);
 
         log.info("Should be {}", expectedTestResult);
@@ -94,13 +96,34 @@ public class Day04 {
 
 
     /**
+     * How many rolls of paper can be removed in total.
      * 
      * @param lines The lines read from the input.
      * @return The value calculated for part 2.
      */
-    private static long part2(final List<String> lines) {
+    private static int part2(final List<String> lines) {
 
-        return -1;
+        var rolls = Coordinate.findCoordinates(lines, '@');
+        int startingRolls = rolls.size();
+
+        final List<Coordinate> rollsToRemove = new ArrayList<>();
+        do {
+            rollsToRemove.clear();
+            rolls.stream()
+                 .filter(r -> SetUtils.intersection(r.findAdjacent(), rolls).size() < 4)
+                 .forEach(rollsToRemove::add);
+
+            rolls.removeAll(rollsToRemove);
+
+            log.atDebug().setMessage("Remove {} rolls of paper:\n{}\n")
+               .addArgument(rollsToRemove.size())
+               .addArgument(() -> Coordinate.printMap(lines.size(), lines.size(), rolls, '@', Set.copyOf(rollsToRemove), 'x'))
+               .log();
+
+        } while (!rollsToRemove.isEmpty());
+
+        return startingRolls - rolls.size();
+
     }
 
 }
