@@ -49,7 +49,7 @@ public class Day03 {
         // Read the real file
         List<String> lines = FileUtils.readFile(INPUT_TXT);
 
-        log.info(resultMessage, part1(lines));
+        log.info(resultMessage, part1(lines));  // 17281
 
         // PART 2
         resultMessage = "The total output joltage is {}";
@@ -83,7 +83,7 @@ public class Day03 {
     private static long part1(final List<String> lines) {
 
         return lines.stream()
-                    .mapToInt(l -> Day03.findLargestJoltage(l, 2))
+                    .mapToLong(l -> Day03.findLargestJoltage(l, 2))
                     .sum();
 
     }
@@ -98,33 +98,35 @@ public class Day03 {
      * @return The value of the largest n-digit number that can be read from
      *         left to right.
      */
-    private static int findLargestJoltage(String line, int length) {
+    private static long findLargestJoltage(String line, int length) {
 
-        char firstDigit = '?';
+        StringBuilder joltageString = new StringBuilder();
 
-        for (int i = 9; i > 0; i--) {
-            int index = line.indexOf(i + '0');
-            if (index >= 0 && index < line.length() - 1) {
-                firstDigit = line.charAt(index);
-                break;
+        String subString = line;
+
+        for (int n = length; n > 0; n--) {
+            char foundDigit = '?';
+
+            for (int i = 9; i > 0; i--) {
+                int index = subString.indexOf(i + '0');
+                // Stop before the number of digits left to find
+                if (index >= 0 && index < subString.length() - (n - 1)) {
+                    foundDigit = subString.charAt(index);
+                    break;
+                }
             }
+            // Add the found digit to the string
+            joltageString.append(foundDigit);
+
+            // Start from that digit's position and continue for the rest of the line
+            // Except for the last digit
+            if (n > 1)
+                subString = subString.substring(subString.indexOf(foundDigit) + 1);
         }
 
-        String subString = line.substring(line.indexOf(firstDigit) + 1);
+        log.debug("In {} the largest {}-digit joltage possible is {}.", line, length, joltageString);
 
-        char secondDigit = '?';
-        for (int i = 9; i > 0; i--) {
-            int index = subString.indexOf(i + '0');
-            if (index >= 0) {
-                secondDigit = subString.charAt(index);
-                break;
-            }
-        }
-
-        var joltage = Integer.valueOf("" + firstDigit + secondDigit);
-        log.debug("In {} the largest joltage possible is {}.", line, joltage);
-
-        return joltage;
+        return Long.valueOf(joltageString.toString());
     }
 
 
@@ -140,7 +142,7 @@ public class Day03 {
     private static long part2(final List<String> lines) {
 
         return lines.stream()
-                    .mapToInt(l -> Day03.findLargestJoltage(l, 12))
+                    .mapToLong(l -> Day03.findLargestJoltage(l, 12))
                     .sum();
 
     }
