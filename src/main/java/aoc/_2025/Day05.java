@@ -13,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.LoggerFactory;
 
 import aoc.FileUtils;
+import aoc.RangeUtils;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
@@ -144,17 +145,16 @@ public class Day05 {
                 // Otherwise, create the new ranges, and put them back in the queue.
                 freshnessRanges.removeAll(overlappingRanges);
                 overlappingRanges.stream()
-                                 .map(r -> Range.of(Math.min(range.getMinimum(), r.getMinimum()),
-                                                    Math.max(range.getMaximum(), r.getMaximum())))
+                                 .map(r -> RangeUtils.union(range, r))
                                  .forEach(freshnessRanges::add);
             }
         }
 
         log.debug("Consolidated ranges:\n{}", consolidatedRanges);
 
-        return consolidatedRanges.stream()
-                                 .mapToLong(r -> r.getMaximum() - r.getMinimum() + 1)
-                                 .sum();
+        return (long) consolidatedRanges.stream()
+                                        .mapToDouble(RangeUtils::size)
+                                        .sum();
     }
 
 }
