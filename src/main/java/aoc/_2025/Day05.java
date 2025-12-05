@@ -1,8 +1,11 @@
 package aoc._2025;
 
+import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.lang3.Range;
@@ -57,12 +60,12 @@ public class Day05 {
         log.info(resultMessage, part1(lines));
 
         // PART 2
-        resultMessage = "{}";
+        resultMessage = "{} ingredient IDs are considered to be fresh according to the fresh ingredient ID ranges.";
 
         log.info("Part 2:");
         log.setLevel(Level.DEBUG);
 
-        expectedTestResult = 1_234_567_890;
+        expectedTestResult = 14;
         testResult = part2(testLines);
 
         log.info("Should be {}", expectedTestResult);
@@ -109,13 +112,49 @@ public class Day05 {
 
 
     /**
+     * Given freshness ranges only, how many ingredient ID would be considered
+     * fresh?
      * 
      * @param lines The lines read from the input.
      * @return The value calculated for part 2.
      */
     private static long part2(final List<String> lines) {
+        // Parse the freshness ranges
+        Queue<Range<Long>> freshnessRanges = lines.stream()
+                                                  .filter(l -> l.contains("-"))
+                                                  .map(l -> Range.of(Long.valueOf(l.split("-")[0]), Long.valueOf(l.split("-")[1])))
+                                                  .collect(Collectors.toCollection(ArrayDeque::new));
 
-        return -1;
+        log.debug("Freshness ranges:\n{}", freshnessRanges);
+
+        // Consolidate the ranges
+        Set<Range<Long>> consolidatedRanges = new HashSet<>();
+
+        while (!freshnessRanges.isEmpty()) {
+            Range<Long> range = freshnessRanges.poll();
+            // Find overlapping ranges
+            var overlappingRanges = freshnessRanges.stream()
+                                                   .filter(range::isOverlappedBy)
+                                                   .toList();
+
+            // If it doesn't overlap anything, then it it consolidated.
+            if (overlappingRanges.isEmpty()) {
+                consolidatedRanges.add(range);
+            } else {
+                // Otherwise, create the new ranges, and put them back in the queue.
+                freshnessRanges.removeAll(overlappingRanges);
+                overlappingRanges.stream()
+                                 .map(r -> Range.of(Math.min(range.getMinimum(), r.getMinimum()),
+                                                    Math.max(range.getMaximum(), r.getMaximum())))
+                                 .forEach(freshnessRanges::add);
+            }
+        }
+
+        log.debug("Consolidated ranges:\n{}", consolidatedRanges);
+
+        return consolidatedRanges.stream()
+                                 .mapToLong(r -> r.getMaximum() - r.getMinimum() + 1)
+                                 .sum();
     }
 
 }
