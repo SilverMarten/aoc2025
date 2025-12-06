@@ -1,7 +1,6 @@
 package aoc._2025;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
@@ -175,18 +174,13 @@ public class Day06 {
             }
         });
 
-        //        var maxDigits = numberColumns.stream()
-        //            .flatMap(Collection::stream)
-        //            .map(Object::toString)
-        //            .mapToInt(String::length)
-        //            .max();
-        //        
-        //        log.debug("%"+maxDigits+"s ".repeat(operations.size()).formatted(null));
+        log.debug(numberColumns.toString());
 
         // For each columns, translate the numbers, combine the values, and sum them
         return IntStream.range(0, numberColumns.size())
                         .mapToLong(i -> translateNumbers(numberColumns.get(i)).stream()
                                                                               .collect(Collectors.reducing(operations.get(i))).orElse(0L))
+                        .peek(s -> log.debug(s + ""))
                         .sum();
 
     }
@@ -194,7 +188,36 @@ public class Day06 {
 
 
     private static List<Long> translateNumbers(List<Long> numbers) {
-        return numbers;
+        // Figure out the longest number
+        var maxDigits = numbers.stream()
+                               .map(Object::toString)
+                               .mapToInt(String::length)
+                               .max()
+                               .orElse(0);
+
+        // Remap the digits into columns
+        List<List<String>> numberColumns = new ArrayList<>();
+        // Initialize it to the right number of columns
+        IntStream.range(0, maxDigits)
+                 .forEach(i -> numberColumns.add(new ArrayList<>()));
+
+        // Put each digit into a column
+        numbers.stream()
+               .map(Object::toString)
+               .forEach(n -> {
+                   IntStream.range(0, n.length())
+                            .forEach(i -> numberColumns.get(i).add("" + n.charAt(i)));
+               });
+
+        // Combine each column into a number
+        var newColumn = numberColumns.stream()
+                                     .map(l -> Long.valueOf(l.stream().collect(Collectors.joining())))
+                                     .toList()
+                                     .reversed();
+        log.debug(newColumn.toString());
+
+        return newColumn;
+
     }
 
 }
