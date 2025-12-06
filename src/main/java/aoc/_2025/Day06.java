@@ -1,6 +1,7 @@
 package aoc._2025;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
@@ -58,12 +59,12 @@ public class Day06 {
         log.info(resultMessage, part1(lines));
 
         // PART 2
-        resultMessage = "{}";
+        resultMessage = "The correct answers to the cephalopods' questions is {}";
 
         log.info("Part 2:");
         log.setLevel(Level.DEBUG);
 
-        expectedTestResult = 1_234_567_890;
+        expectedTestResult = 3_263_827L;
         testResult = part2(testLines);
 
         log.info("Should be {}", expectedTestResult);
@@ -132,13 +133,68 @@ public class Day06 {
 
 
     /**
+     * Reading the numbers from top to bottom, right to left, find the sum of
+     * all of the answers.
      * 
      * @param lines The lines read from the input.
      * @return The value calculated for part 2.
      */
     private static long part2(final List<String> lines) {
 
-        return -1;
+        // Store the columns of numbers
+        List<List<Long>> numberColumns = new ArrayList<>();
+        // Initialize it to the right number of columns
+        IntStream.range(0, lines.getFirst().split(" +").length)
+                 .forEach(i -> numberColumns.add(new ArrayList<>()));
+
+        // Store the operations
+        final List<BinaryOperator<Long>> operations = new ArrayList<>();
+
+        // Parse the input
+        lines.forEach(l -> {
+            var lineParts = Stream.of(l.split(" +"))
+                                  .filter(StringUtils::isNotBlank)
+                                  .toList();
+
+            if (l.contains("*")) {
+                // Store the operations to be performed
+                lineParts.stream()
+                         .map(o -> switch (o) {
+                             case "*" -> (BinaryOperator<Long>) Math::multiplyExact;
+                             case "+" -> (BinaryOperator<Long>) Math::addExact;
+                             default -> throw new IllegalArgumentException("Unexpected value: " + o);
+                         })
+                         .forEach(operations::add);
+            } else {
+                // Parse the numbers into the right columns
+                var lineNumbers = lineParts.stream()
+                                           .map(Long::valueOf)
+                                           .toList();
+                IntStream.range(0, lineParts.size())
+                         .forEach(i -> numberColumns.get(i).add(lineNumbers.get(i)));
+            }
+        });
+
+        //        var maxDigits = numberColumns.stream()
+        //            .flatMap(Collection::stream)
+        //            .map(Object::toString)
+        //            .mapToInt(String::length)
+        //            .max();
+        //        
+        //        log.debug("%"+maxDigits+"s ".repeat(operations.size()).formatted(null));
+
+        // For each columns, translate the numbers, combine the values, and sum them
+        return IntStream.range(0, numberColumns.size())
+                        .mapToLong(i -> translateNumbers(numberColumns.get(i)).stream()
+                                                                              .collect(Collectors.reducing(operations.get(i))).orElse(0L))
+                        .sum();
+
+    }
+
+
+
+    private static List<Long> translateNumbers(List<Long> numbers) {
+        return numbers;
     }
 
 }
