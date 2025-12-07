@@ -2,6 +2,7 @@ package aoc._2025;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -140,46 +141,55 @@ public class Day06 {
      */
     private static long part2(final List<String> lines) {
 
-        // Store the columns of numbers
-        List<List<Long>> numberColumns = new ArrayList<>();
-        // Initialize it to the right number of columns
-        IntStream.range(0, lines.getFirst().split(" +").length)
-                 .forEach(i -> numberColumns.add(new ArrayList<>()));
+        // Get the last line (which has the operations)
+        var lineParts = Stream.of(lines.getLast().split(" +"))
+                              .filter(StringUtils::isNotBlank)
+                              .toList();
 
-        // Store the operations
-        final List<BinaryOperator<Long>> operations = new ArrayList<>();
+        // Store the operations to be performed
+        List<BinaryOperator<Long>> operations = lineParts.stream()
+                                                         .map(o -> switch (o) {
+                                                             case "*" -> (BinaryOperator<Long>) Math::multiplyExact;
+                                                             case "+" -> (BinaryOperator<Long>) Math::addExact;
+                                                             default -> throw new IllegalArgumentException("Unexpected value: " + o);
+                                                         })
+                                                         .toList()
+                                                         // Reversed because they are to be processed from right to left
+                                                         .reversed();
 
-        // Parse the input
-        lines.forEach(l -> {
-            var lineParts = Stream.of(l.split(" +"))
-                                  .filter(StringUtils::isNotBlank)
-                                  .toList();
+        // Transpose the rows and columns
+        var transposedLines = transpose(lines.subList(0, lines.size() - 1));
 
-            if (l.contains("*")) {
-                // Store the operations to be performed
-                lineParts.stream()
-                         .map(o -> switch (o) {
-                             case "*" -> (BinaryOperator<Long>) Math::multiplyExact;
-                             case "+" -> (BinaryOperator<Long>) Math::addExact;
-                             default -> throw new IllegalArgumentException("Unexpected value: " + o);
-                         })
-                         .forEach(operations::add);
+        log.atDebug()
+           .setMessage(transposedLines::toString)
+           .log();
+
+        // Group the lists of numbers together
+        AtomicInteger groupIndex = new AtomicInteger();
+        List<List<Long>> numberGroups = new ArrayList<>();
+        numberGroups.add(new ArrayList<>());
+
+        transposedLines.forEach(l -> {
+            // Setup for the next group
+            if (StringUtils.isBlank(l)) {
+                groupIndex.incrementAndGet();
+                numberGroups.add(new ArrayList<>());
             } else {
-                // Parse the numbers into the right columns
-                var lineNumbers = lineParts.stream()
-                                           .map(Long::valueOf)
-                                           .toList();
-                IntStream.range(0, lineParts.size())
-                         .forEach(i -> numberColumns.get(i).add(lineNumbers.get(i)));
+                numberGroups.get(groupIndex.intValue()).add(Long.valueOf(l));
             }
         });
 
-        log.debug(numberColumns.toString());
+        log.atDebug()
+           .setMessage(numberGroups::toString)
+           .log();
 
-        // For each columns, translate the numbers, combine the values, and sum them
-        return IntStream.range(0, numberColumns.size())
-                        .mapToLong(i -> translateNumbers(numberColumns.get(i)).stream()
-                                                                              .collect(Collectors.reducing(operations.get(i))).orElse(0L))
+        // Apply the operation and sum the results
+
+        return IntStream.range(0, numberGroups.size())
+                        .mapToLong(i -> numberGroups.get(i)
+                                                    .stream()
+                                                    .collect(Collectors.reducing(operations.get(i)))
+                                                    .orElse(0L))
                         .peek(s -> log.debug(s + ""))
                         .sum();
 
@@ -187,37 +197,28 @@ public class Day06 {
 
 
 
-    private static List<Long> translateNumbers(List<Long> numbers) {
-        // Figure out the longest number
-        var maxDigits = numbers.stream()
-                               .map(Object::toString)
-                               .mapToInt(String::length)
-                               .max()
-                               .orElse(0);
+    /**
+     * Given a list of lines of text (each with the same length) transpose them
+     * into lines based on the columns, from right to left and top to bottom.
+     * 
+     * @param lines The lines to be transposed.
+     * @return A new list of lines representing the columns of the original
+     *         input, from right to left and top to bottom.
+     */
+    private static List<String> transpose(List<String> lines) {
+        // Store the new lines to be appended to
+        List<StringBuilder> transposedLines = new ArrayList<>();
+        IntStream.range(0, lines.getFirst().length())
+                 .forEach(i -> transposedLines.add(new StringBuilder()));
 
-        // Remap the digits into columns
-        List<List<String>> numberColumns = new ArrayList<>();
-        // Initialize it to the right number of columns
-        IntStream.range(0, maxDigits)
-                 .forEach(i -> numberColumns.add(new ArrayList<>()));
+        lines.forEach(l -> IntStream.range(0, l.length())
+                                    .forEach(i -> transposedLines.get(i).append(l.charAt(i))));
 
-        // Put each digit into a column
-        numbers.stream()
-               .map(Object::toString)
-               .forEach(n -> {
-                   IntStream.range(0, n.length())
-                            .forEach(i -> numberColumns.get(i).add("" + n.charAt(i)));
-               });
-
-        // Combine each column into a number
-        var newColumn = numberColumns.stream()
-                                     .map(l -> Long.valueOf(l.stream().collect(Collectors.joining())))
-                                     .toList()
-                                     .reversed();
-        log.debug(newColumn.toString());
-
-        return newColumn;
-
+        return transposedLines.reversed()
+                              .stream()
+                              .map(StringBuilder::toString)
+                              .map(String::trim)
+                              .toList();
     }
 
 }
