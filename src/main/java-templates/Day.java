@@ -32,9 +32,6 @@ public class Day${day} {
 
         // Read the test file
         List<String> testLines = FileUtils.readFile(TEST_INPUT_TXT);
-        var testMap = Coordinate.mapCoordinates(testLines);
-        var testRows = testLines.size();
-        var testColumns = testLines.getFirst().length();
 
         var expectedTestResult = 1_234_567_890;
         var testResult = part1(testLines);
@@ -49,10 +46,6 @@ public class Day${day} {
 
         // Read the real file
         List<String> lines = FileUtils.readFile(INPUT_TXT);
-        var map = Coordinate.mapCoordinates(lines);
-        var rows = lines.size();
-        var columns = lines.getFirst().length();
-
         log.info(resultMessage, part1(lines));
 
         // PART 2
@@ -81,6 +74,10 @@ public class Day${day} {
      * @return The value calculated for part 1.
      */
     private static long part1(final List<String> lines) {
+
+        var map = Coordinate.mapCoordinates(lines);
+        var rows = lines.size();
+        var columns = lines.getFirst().length();
 
         return -1;
     }
