@@ -4,11 +4,16 @@ import static aoc.Direction.DOWN;
 import static aoc.Direction.LEFT;
 import static aoc.Direction.RIGHT;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.slf4j.LoggerFactory;
 
@@ -61,12 +66,12 @@ public class Day07 {
         log.info(resultMessage, part1(lines));
 
         // PART 2
-        resultMessage = "{}";
+        resultMessage = "The beam ends up on {} different timelines.";
 
         log.info("Part 2:");
         log.setLevel(Level.DEBUG);
 
-        expectedTestResult = 1_234_567_890;
+        expectedTestResult = 40;
         testResult = part2(testLines);
 
         log.info("Should be {}", expectedTestResult);
@@ -136,7 +141,7 @@ public class Day07 {
 
             log.atTrace()
                .setMessage("\n{}")
-               .addArgument(() -> Coordinate.printMap(rows, columns, start, 'S', splitters, '^'))
+               .addArgument(() -> Coordinate.printMap(rows, columns, allBeams, '|', splitters, '^'))
                .log();
         }
 
@@ -151,13 +156,101 @@ public class Day07 {
 
 
     /**
+     * ... same as part one, but count the number of split beams.
      * 
      * @param lines The lines read from the input.
      * @return The value calculated for part 2.
      */
     private static long part2(final List<String> lines) {
 
-        return -1;
+        var start = Coordinate.findCoordinates(lines, 'S').iterator().next();
+        var splitters = Coordinate.findCoordinates(lines, '^');
+        var rows = lines.size();
+        var columns = lines.getFirst().length();
+
+        log.atDebug()
+           .setMessage("\n{}")
+           .addArgument(() -> Coordinate.printMap(rows, columns, Set.of(start), 'S', splitters, '^'))
+           .log();
+
+        Map<Coordinate, Long> overlappingBeams = new HashMap<>();
+        Set<Coordinate> nextBeams = new HashSet<>();
+        Set<Coordinate> allBeams = new HashSet<>();
+        Set<Coordinate> encounteredSplitters = new HashSet<>();
+        long timelines = 0;
+
+        // Start from one space below the 'S'
+        nextBeams.add(start.translate(DOWN, 1));
+        overlappingBeams.put(start.translate(DOWN, 1), 1L);
+
+        while (!nextBeams.isEmpty()) {
+            // Queue up the set of coordinates to process next
+            Queue<Coordinate> currentBeams = new LinkedList<>(nextBeams);
+            nextBeams.clear();
+
+            while (!currentBeams.isEmpty()) {
+                var beam = currentBeams.poll();
+
+                // Record it as processed
+                allBeams.add(beam);
+
+                // Check below
+                var below = beam.translate(DOWN, 1);
+
+                // Whenever a splitter is encountered, add beams next to it
+                // Also record that it has been hit
+                if (splitters.contains(below)) {
+                    // Accumulate the total number of beams
+                    timelines++;
+
+                    var right = below.translate(RIGHT, 1);
+                    var left = below.translate(LEFT, 1);
+
+                    overlappingBeams.merge(right, overlappingBeams.getOrDefault(beam, 1L), Math::addExact);
+                    overlappingBeams.merge(left, overlappingBeams.getOrDefault(beam, 1L), Math::addExact);
+
+                    nextBeams.add(right);
+                    nextBeams.add(left);
+                    encounteredSplitters.add(below);
+                } else if (below.getRow() <= rows) {
+                    // The beam continues (until the bottom of the map)
+                    nextBeams.add(below);
+                    overlappingBeams.merge(below, overlappingBeams.getOrDefault(beam, 1L), Math::addExact);
+                }
+            }
+
+            log.trace("{} timelines", timelines);
+
+            log.atTrace()
+               .setMessage("\n{}")
+               .addArgument(() -> Coordinate.printMap(rows, columns, nextBeams, '|', splitters, '^'))
+               .log();
+        }
+
+        log.atDebug()
+           .setMessage("\n{}")
+           .addArgument(() -> Coordinate.printMap(rows, columns, allBeams, '|', splitters, '^'))
+           .log();
+
+        log.atDebug()
+           .setMessage("Timelines per row:\n{}")
+           .addArgument(() -> IntStream.range(1, rows)
+                                       .mapToLong(i -> overlappingBeams.entrySet()
+                                                                       .stream()
+                                                                       .filter(e -> e.getKey().getRow() == i)
+                                                                       .mapToLong(Entry::getValue)
+                                                                       .sum())
+                                       .mapToObj(Long::toString)
+                                       .collect(Collectors.joining("\n")))
+           .log();
+
+        log.atTrace().setMessage(overlappingBeams::toString);
+
+        return overlappingBeams.entrySet()
+                               .stream()
+                               .filter(e -> e.getKey().getRow() == rows)
+                               .mapToLong(Entry::getValue)
+                               .sum();
     }
 
 }
