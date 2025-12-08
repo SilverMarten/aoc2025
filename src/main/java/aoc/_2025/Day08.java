@@ -1,5 +1,6 @@
 package aoc._2025;
 
+import java.util.ArrayDeque;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -7,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.iterators.CartesianProductIterator;
 import org.apache.commons.lang3.tuple.Pair;
@@ -44,7 +46,7 @@ public class Day08 {
         // Read the test file
         List<String> testLines = FileUtils.readFile(TEST_INPUT_TXT);
 
-        var expectedTestResult = 40L;
+        var expectedTestResult = 40;
         var testResult = part1(testLines, 10);
 
         log.info("Should be {}", expectedTestResult);
@@ -60,12 +62,12 @@ public class Day08 {
         log.info(resultMessage, part1(lines, 1000));
 
         // PART 2
-        resultMessage = "{}";
+        resultMessage = "The product of the x coordinates of the last two junction boxes to be connected is {}";
 
         log.info("Part 2:");
         log.setLevel(Level.DEBUG);
 
-        expectedTestResult = 1_234_567_890;
+        expectedTestResult = 25_272;
         testResult = part2(testLines);
 
         log.info("Should be {}", expectedTestResult);
@@ -142,11 +144,57 @@ public class Day08 {
 
 
     /**
+     * Connect the junction boxes, in order from closest to farthest, until they
+     * form a single circuit. Then find the product of the x coordinates of the
+     * last two to be connected.
      * 
      * @param lines The lines read from the input.
      * @return The value calculated for part 2.
      */
     private static long part2(final List<String> lines) {
+
+        // Parse the coordinates into JunctionBoxes
+        var junctionBoxes = lines.stream()
+                                 .map(l -> l.split(","))
+                                 .map(c -> new Coordinate3D(Integer.valueOf(c[0]), Integer.valueOf(c[1]), Integer.valueOf(c[2])))
+                                 .map(JunctionBox::new)
+                                 .toList();
+
+        // Determine the distance between every pair
+        Map<Double, Pair<JunctionBox, JunctionBox>> distances = new HashMap<>();
+        CartesianProductIterator<JunctionBox> pairs = new CartesianProductIterator<>(junctionBoxes, junctionBoxes);
+        // I realise this is going to do twice as much work as necessary...
+        pairs.forEachRemaining(p -> {
+            var distance = p.getFirst().getPosition().distanceTo(p.getLast().getPosition());
+            if (distance > 0) {
+                var newPair = Pair.of(p.getFirst(), p.getLast());
+                var existingPair = distances.put(distance, newPair);
+                if (existingPair != null && !(newPair.equals(existingPair) || Pair.of(p.getLast(), p.getFirst()).equals(existingPair)))
+                    throw new IllegalArgumentException("There was already a pair of coordinates %.5f apart (%s, %s).".formatted(distance,
+                                                                                                                                existingPair.getLeft()
+                                                                                                                                            .getPosition(),
+                                                                                                                                existingPair.getRight()
+                                                                                                                                            .getPosition()));
+            }
+        });
+
+        // Connect the n-closest
+        var sortedPairs = distances.entrySet()
+                                   .stream()
+                                   .sorted(Comparator.comparing(Entry::getKey))
+                                   .map(Entry::getValue)
+                                   .collect(Collectors.toCollection(ArrayDeque::new));
+
+        // Connect them until the circuit contains all the junction boxes
+        while (!sortedPairs.isEmpty()) {
+            var pairToConnect = sortedPairs.poll();
+            var left = pairToConnect.getLeft();
+            var right = pairToConnect.getRight();
+            left.connect(right);
+
+            if (left.getCircuit().size() == junctionBoxes.size())
+                return (long) left.getPosition().getRow() * right.getPosition().getRow();
+        }
 
         return -1;
     }
