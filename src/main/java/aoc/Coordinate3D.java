@@ -10,10 +10,16 @@ import java.util.stream.IntStream;
  * A coordinate of row, column, and height.
  */
 public final class Coordinate3D implements Comparable<Coordinate3D> {
+
     private final int row;
+
     private final int column;
+
     private final int height;
+
     private final int hashCode;
+
+
 
     public Coordinate3D(int row, int column, int height) {
         this.row = row;
@@ -22,21 +28,31 @@ public final class Coordinate3D implements Comparable<Coordinate3D> {
         this.hashCode = computeHashCode();
     }
 
+
+
     public int getRow() {
         return row;
     }
+
+
 
     public int getColumn() {
         return column;
     }
 
+
+
     public int getHeight() {
         return height;
     }
 
+
+
     public static Coordinate3D of(int row, int column, int height) {
         return new Coordinate3D(row, column, height);
     }
+
+
 
     /**
      * @return The set of adjacent coordinates to this coordinate.
@@ -55,6 +71,8 @@ public final class Coordinate3D implements Comparable<Coordinate3D> {
                         .collect(Collectors.toSet());
     }
 
+
+
     /**
      * @return The set of orthogonally adjacent coordinates to this coordinate.
      */
@@ -72,10 +90,28 @@ public final class Coordinate3D implements Comparable<Coordinate3D> {
                         .collect(Collectors.toSet());
     }
 
+
+
+    /**
+     * Determine the Euclidean distance to another point.
+     * 
+     * @param other The other point to measure the distance to.
+     * @return The Euclidean distance to the other point.
+     */
+    public double distanceTo(Coordinate3D other) {
+        return this == other ? 0
+                             : Math.sqrt(Math.pow(this.row - other.row, 2) + Math.pow(this.column - other.column, 2) +
+                                         Math.pow(this.height - other.height, 2));
+    }
+
+
+
     @Override
     public int hashCode() {
         return this.hashCode;
     }
+
+
 
     /**
      * Compute the hashCode for this Coordinate3D so it can be cached by the
@@ -86,6 +122,8 @@ public final class Coordinate3D implements Comparable<Coordinate3D> {
     private int computeHashCode() {
         return Objects.hash(column, height, row);
     }
+
+
 
     @Override
     public boolean equals(Object obj) {
@@ -99,10 +137,14 @@ public final class Coordinate3D implements Comparable<Coordinate3D> {
         return column == other.column && height == other.height && row == other.row;
     }
 
+
+
     @Override
     public String toString() {
         return String.format("(%s, %s, %s)", row, column, height);
     }
+
+
 
     @Override
     public int compareTo(Coordinate3D o) {
