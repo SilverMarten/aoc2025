@@ -59,12 +59,12 @@ public class Day09 {
         log.info(resultMessage, part1(lines));
 
         // PART 2
-        resultMessage = "{}";
+        resultMessage = "{} is the largest area of any rectangle you can make, using only red or green tiles.";
 
         log.info("Part 2:");
         log.setLevel(Level.DEBUG);
 
-        expectedTestResult = 1_234_567_890;
+        expectedTestResult = 24;
         testResult = part2(testLines);
 
         log.info("Should be {}", expectedTestResult);
@@ -128,13 +128,59 @@ public class Day09 {
 
 
     /**
+     * Given the list of coordinates, define an area with, then within that area
+     * what is the largest area of rectangle you can make?
      * 
      * @param lines The lines read from the input.
-     * @return The value calculated for part 2.
+     * @return The area of the largest rectangle, made of only red or green
+     *         tiles.
      */
     private static long part2(final List<String> lines) {
 
-        return -1;
+        var coordinates = Coordinate.parseCoordinates(lines);
+        var rows = coordinates.stream()
+                              .mapToInt(Coordinate::getRow)
+                              .max()
+                              .getAsInt();
+        var columns = coordinates.stream()
+                                 .mapToInt(Coordinate::getColumn)
+                                 .max()
+                                 .getAsInt();
+
+        log.atDebug()
+           .setMessage("\n{}")
+           .addArgument(() -> Coordinate.printMap(rows, columns, coordinates))
+           .log();
+
+        Map<Long, Pair<Coordinate, Coordinate>> areas = new HashMap<>();
+        CartesianProductIterator<Coordinate> pairs = new CartesianProductIterator<>(coordinates, coordinates);
+
+        pairs.forEachRemaining(p -> {
+            var first = p.getFirst();
+            var last = p.getLast();
+            var firstLast = Coordinate.of(first.getRow(), last.getColumn());
+            var lastFirst = Coordinate.of(first.getColumn(), last.getRow());
+
+            // What if: at least one of the opposite corners has to be one of the bounding coordinates?
+            // Nope. But maybe it will cut down on the search space.
+            if (coordinates.contains(firstLast) || coordinates.contains(lastFirst))
+                areas.put((long) (Math.abs(first.getRow() - last.getRow()) + 1) *
+                          (Math.abs(first.getColumn() - last.getColumn()) + 1),
+                          Pair.of(first, last));
+        });
+
+        log.atDebug()
+           .setMessage("Areas:\n{}")
+           .addArgument(() -> areas.entrySet()
+                                   .stream()
+                                   .sorted(Comparator.comparing(Entry::getKey, Comparator.reverseOrder()))
+                                   .map(e -> "%d (%s and %s)".formatted(e.getKey(),
+                                                                        e.getValue().getLeft(),
+                                                                        e.getValue().getRight()))
+                                   .collect(Collectors.joining("\n")))
+           .log();
+
+        return areas.keySet().stream().mapToLong(Long::longValue).max().getAsLong();
     }
 
 }
