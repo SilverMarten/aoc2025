@@ -306,6 +306,21 @@ public final class Coordinate implements Comparable<Coordinate> {
 
 
     /**
+     * Parse a list of strings, representing two parts of a coordinate separated
+     * by a comma, into a set of coordinates.
+     * 
+     * @param lines The lines to parse and map to {@link Coordinate}s
+     * @return The set of coordinates listed in the given lines.
+     */
+    public static Set<Coordinate> parseCoordinates(List<String> lines) {
+        return lines.stream()
+                    .map(l -> Coordinate.of(Integer.valueOf(l.split(",")[0]), Integer.valueOf(l.split(",")[1])))
+                    .collect(Collectors.toCollection(HashSet::new));
+    }
+
+
+
+    /**
      * Create a printout of the digit map, using '.' for empty spaces.
      * 
      * @param rows The number of rows in the map.
