@@ -2,8 +2,12 @@ package aoc._2025;
 
 import static java.util.stream.Collectors.joining;
 
+import java.util.ArrayDeque;
 import java.util.BitSet;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Queue;
+import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -116,7 +120,59 @@ public class Day10 {
      */
     private static int runToStart(Machine machine) {
 
-        return 0;
+        // Press each button a certain number of times
+        int buttonPresses = 1;
+
+        var buttons = machine.buttons;
+        log.debug("Buttons: {}", buttons);
+
+        // Setup the first press
+        log.atDebug()
+           .setMessage("From {}, to {}")
+           .addArgument(() -> Machine.lightString(new BitSet(), machine.joltages.size()))
+           .addArgument(() -> buttons.stream()
+                                     .map(s -> Machine.lightString(s, machine.joltages.size()))
+                                     .collect(joining(",")))
+           .log();
+
+        // Track the various resulting states
+        Queue<BitSet> states = new ArrayDeque<>();
+        // Avoid revisiting old states
+        Set<BitSet> previousStates = new HashSet<>();
+        Set<BitSet> newStates = new HashSet<>(buttons);
+
+        while (!newStates.contains(machine.startLight)) {
+            states.addAll(newStates);
+            newStates.clear();
+            while (!states.isEmpty()) {
+                // Compute the new states by pushing each button
+                BitSet state = states.poll();
+
+                buttons.forEach(b -> {
+                    var newState = new BitSet();
+                    // Copy the base state
+                    newState.or(state);
+                    // Apply the button
+                    newState.xor(b);
+                    newStates.add(newState);
+                    previousStates.add(state);
+                });
+
+                log.atDebug()
+                   .setMessage("From {}, to {}")
+                   .addArgument(() -> Machine.lightString(state, machine.joltages.size()))
+                   .addArgument(() -> newStates.stream()
+                                               .map(s -> Machine.lightString(s, machine.joltages.size()))
+                                               .collect(joining(",")))
+                   .log();
+
+                // Avoid previous states
+                newStates.removeAll(previousStates);
+            }
+            buttonPresses++;
+        }
+
+        return buttonPresses;
     }
 
 
@@ -177,7 +233,7 @@ public class Day10 {
             // Light diagram
             BitSet light = new BitSet();
             IntStream.range(1, line.lastIndexOf(']'))
-                     .forEach(i -> light.set(i, line.charAt(i) == '#'));
+                     .forEach(i -> light.set(i - 1, line.charAt(i) == '#'));
 
             // Button wiring
             List<BitSet> buttons = Stream.of(line.substring(line.indexOf('(') + 1, line.lastIndexOf(')')).split("\\) \\("))
@@ -205,11 +261,7 @@ public class Day10 {
             StringBuilder string = new StringBuilder();
 
             // Light diagram
-            char[] lightString = ".".repeat(this.joltages.size()).toCharArray();
-            this.startLight.stream()
-                           .limit(this.joltages.size())
-                           .forEach(i -> lightString[i-1] = '#');
-            string.append("[").append(lightString).append("] ");
+            string.append("[").append(lightString(startLight, this.joltages.size())).append("] ");
 
             // Button wiring
             String buttonString = this.buttons.stream()
@@ -226,6 +278,24 @@ public class Day10 {
             string.append("{").append(joltageString).append("}");
 
             return string.toString();
+        }
+
+
+
+        /**
+         * Format a {@link BitSet} as a light string of a certain size.
+         * 
+         * @param light The {@link BitSet} to display as a light.
+         * @param size The number of elements in the light.
+         * @return A string representation of the BitString as a light.
+         */
+        public static String lightString(BitSet light, int size) {
+
+            char[] lightString = ".".repeat(size).toCharArray();
+            light.stream()
+                 .limit(size)
+                 .forEach(i -> lightString[i] = '#');
+            return "[" + String.valueOf(lightString) + "]";
         }
     }
 
