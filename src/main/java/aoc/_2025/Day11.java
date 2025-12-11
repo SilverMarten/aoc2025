@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -63,7 +64,7 @@ public class Day11 {
         log.info(resultMessage, part1(lines));
 
         // PART 2
-        resultMessage = "{}";
+        resultMessage = "{} different paths lead from \"svr\" to \"out\", and pass through \"fft\" and \"dac\".";
 
         log.info("Part 2:");
         log.setLevel(Level.DEBUG);
@@ -220,26 +221,51 @@ public class Day11 {
         // Determine all of the child nodes that a single node may reach
         Map<String, Set<String>> childNodeMap = new HashMap<>();
         Queue<String> nodesToCheck = new ArrayDeque<>();
-        nodesToCheck.add("svr");
 
-        while (!nodesToCheck.isEmpty()) {
-            var node = nodesToCheck.poll();
-            var childNodes = nodeMap.get(node);
-            // If this is a leaf node
-            if (childNodes.isEmpty())
-                childNodeMap.put(node, Collections.emptySet());
-            else // If all of the child nodes are known
-            if (childNodes.stream().allMatch(childNodeMap::containsKey)) {
-                childNodeMap.put(node, childNodes.stream()
-                                                 .map(childNodeMap::get)
-                                                 .flatMap(Collection::stream)
+        List<String> nextNodesToCheck = new ArrayList<>();
+        List<String> nextChildNodesToCheck = new ArrayList<>();
+        nextNodesToCheck.add("svr");
+        while (!nextNodesToCheck.isEmpty()) {
+            nodesToCheck.addAll(nextChildNodesToCheck);
+            nodesToCheck.addAll(nextNodesToCheck);
+            nextChildNodesToCheck.clear();
+            nextNodesToCheck.clear();
+            while (!nodesToCheck.isEmpty()) {
+                var node = nodesToCheck.poll();
+                if (childNodeMap.containsKey(node))
+                    continue;
+
+                var childNodes = nodeMap.get(node);
+                // If this is a leaf node
+                if (childNodes == null || childNodes.isEmpty())
+                    childNodeMap.put(node, Collections.emptySet());
+                else // If all of the child nodes are known
+                if (childNodes.stream().allMatch(childNodeMap::containsKey)) {
+                    childNodeMap.put(node, Stream.concat(childNodes.stream(), childNodes.stream()
+                                                                                        .map(childNodeMap::get)
+                                                                                        .flatMap(Collection::stream))
                                                  .collect(Collectors.toSet()));
-            } else {
-                // Re-queque for later
-                nodesToCheck.add(node);
+                } else {
+                    // Re-queque for later
+                    nextNodesToCheck.add(node);
+                    // Check the child nodes 
+                    childNodes.forEach(n -> {
+                        if (!nextChildNodesToCheck.contains(n))
+                            nextChildNodesToCheck.add(n);
+                    });
+                }
             }
         }
-        
+
+        log.atDebug()
+           .setMessage("Child nodes:\n{}")
+           .addArgument(() -> childNodeMap.entrySet()
+                                          .stream()
+                                          .sorted(Comparator.comparing(Entry::getKey))
+                                          .map(e -> e.getKey() + ": " + e.getValue().stream().collect(Collectors.joining(" ")))
+                                          .collect(Collectors.joining("\n")))
+           .log();
+
         // TODO Use the child node map to reduce the search space of the counting of paths
 
         // "dac" does not connect to "fft"
