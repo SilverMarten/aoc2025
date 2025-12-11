@@ -3,6 +3,7 @@ package aoc._2025;
 import static java.util.stream.Collectors.joining;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
@@ -60,12 +61,12 @@ public class Day10 {
         log.info(resultMessage, part1(lines));
 
         // PART 2
-        resultMessage = "{}";
+        resultMessage = "{} is the fewest button presses required to correctly configure the joltage level counters on all of the machines.";
 
         log.info("Part 2:");
         log.setLevel(Level.DEBUG);
 
-        expectedTestResult = 1_234_567_890;
+        expectedTestResult = 33;
         testResult = part2(testLines);
 
         log.info("Should be {}", expectedTestResult);
@@ -178,13 +179,106 @@ public class Day10 {
 
 
     /**
+     * What is the fewest button presses required to correctly configure the
+     * joltage level counters on all of the machines?
      * 
      * @param lines The lines read from the input.
      * @return The value calculated for part 2.
      */
     private static long part2(final List<String> lines) {
 
-        return -1;
+        // Parse the machine configurations
+        List<Machine> machines = lines.stream()
+                                      .map(Machine::fromLine)
+                                      .toList();
+
+        log.atDebug()
+           .setMessage("\n{}")
+           .addArgument(() -> machines.stream().map(Machine::toString).collect(joining("\n")))
+           .log();
+
+        // Run the machine, and press buttons until the desired state is reached
+        return machines.stream()
+                       .mapToInt(Day10::runToJoltage)
+                       .sum();
+
+    }
+
+
+
+    /**
+     * Given a {@link Machine}, figure out how few button presses are needed to
+     * get it up to the required joltage levels.
+     * 
+     * @param machine The configured {@link Machine} to start.
+     * 
+     * @return The minimum number of button presses needed to get it up to
+     *         joltage.
+     */
+    private static int runToJoltage(Machine machine) {
+
+        // Press each button a certain number of times
+        int buttonPresses = 1;
+
+        var buttons = machine.buttons;
+        log.debug("Buttons: {}", buttons);
+
+        // Track the various resulting states
+        Queue<List<Integer>> states = new ArrayDeque<>();
+        // Avoid revisiting old states
+        Set<List<Integer>> previousStates = new HashSet<>();
+        Set<List<Integer>> newStates = new HashSet<>();
+
+        // Setup the first press 
+        buttons.forEach(b -> {
+            // Initialize the base state
+            List<Integer> newState = new ArrayList<>();
+            IntStream.range(0, machine.joltages.size()).forEach(i -> newState.add(0));
+            // Apply the button
+            b.stream()
+             .forEach(i -> newState.set(i, newState.get(i) + 1));
+
+            newStates.add(newState);
+        });
+        log.trace("From 0, to {}", newStates);
+        log.atTrace()
+           .setMessage("From {}, to {}")
+           .addArgument(() -> Machine.lightString(new BitSet(), machine.joltages.size()))
+           .addArgument(() -> buttons.stream()
+                                     .map(s -> Machine.lightString(s, machine.joltages.size()))
+                                     .collect(joining(",")))
+           .log();
+
+        while (!newStates.contains(machine.joltages)) {
+            states.addAll(newStates);
+            newStates.clear();
+            while (!states.isEmpty()) {
+                // Compute the new states by pushing each button
+                List<Integer> state = states.poll();
+
+                buttons.forEach(b -> {
+                    // Copy the base state
+                    var newState = new ArrayList<>(state);
+                    // Apply the button
+                    b.stream()
+                     .forEach(i -> newState.set(i, newState.get(i) + 1));
+
+                    if (IntStream.range(0, newState.size()).allMatch(i -> newState.get(i) <= machine.joltages.get(i)))
+                        newStates.add(newState);
+
+                    previousStates.add(state);
+                });
+
+                log.trace("From {}, to {}", state, newStates);
+
+                // Avoid previous states
+                newStates.removeAll(previousStates);
+            }
+            buttonPresses++;
+        }
+
+        log.info("{} button presses for machine {}.", buttonPresses, machine);
+        return buttonPresses;
     }
 
 
