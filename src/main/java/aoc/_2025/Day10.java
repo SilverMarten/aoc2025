@@ -75,7 +75,7 @@ public class Day10 {
         if (testResult != expectedTestResult)
             log.error("The test result doesn't match the expected value.");
 
-        log.setLevel(Level.INFO);
+        log.setLevel(Level.DEBUG);
 
         log.info(resultMessage, part2(lines));
     }
@@ -249,7 +249,8 @@ public class Day10 {
                                      .collect(joining(",")))
            .log();
 
-        while (!newStates.contains(machine.joltages)) {
+        while (!newStates.contains(machine.joltages) && buttonPresses < 100) {
+            log.debug("{} states to check.", newStates.size());
             states.addAll(newStates);
             newStates.clear();
             while (!states.isEmpty()) {
@@ -277,7 +278,7 @@ public class Day10 {
             buttonPresses++;
         }
 
-        log.info("{} button presses for machine {}.", buttonPresses, machine);
+        log.debug("{} button presses for machine {}.", buttonPresses, machine);
         return buttonPresses;
     }
 
