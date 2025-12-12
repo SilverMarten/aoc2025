@@ -17,7 +17,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.LoggerFactory;
 
 import aoc.Coordinate;
-import aoc.Direction;
 import aoc.FileUtils;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -188,12 +187,8 @@ public class Day09 {
         if (firstCoordinate.getRow() == lastCoordinate.getRow())
             horizontalEdges.put(firstCoordinate.getRow(), Range.of(firstCoordinate.getColumn(), lastCoordinate.getColumn()));
 
-        Map<Long, Pair<Coordinate, Coordinate>> areas = new HashMap<>();
-        //        CartesianProductIterator<Coordinate> pairs = new CartesianProductIterator<>(coordinates, coordinates);
+        long maxArea = 0;
 
-        //        pairs.forEachRemaining(p -> {
-        //            var first = p.getFirst();
-        //            var next = p.getLast();
         var totalPairs = (totalCoordinates + 1) * totalCoordinates / 2. - totalCoordinates * 1.5;
         for (int i = 0; i < totalCoordinates; i++) {
             var first = coordinates.get(i);
@@ -203,6 +198,12 @@ public class Day09 {
                     log.info("{} out of {}", currentPair, (int) totalPairs);
 
                 var next = coordinates.get(j);
+
+                // Check if the area is bigger than the current max
+                long area = (long) (Math.abs(first.getRow() - next.getRow()) + 1) *
+                            (Math.abs(first.getColumn() - next.getColumn()) + 1);
+                if (area <= maxArea)
+                    continue;
 
                 var minRow = Math.min(first.getRow(), next.getRow());
                 var maxRow = Math.max(first.getRow(), next.getRow());
@@ -216,57 +217,44 @@ public class Day09 {
                 var containsNone = coordinates.stream()
                                               .noneMatch(c -> rowRange.contains(c.getRow()) && columnRange.contains(c.getColumn()));
                 if (containsNone) {
-                    //                    // Check the other corners
-                    //                    var cornersInside = isPointInside(Coordinate.of(first.getRow(), next.getColumn()), horizontalEdges, verticalEdges) &&
-                    //                                        isPointInside(Coordinate.of(first.getColumn(), next.getRow()), horizontalEdges, verticalEdges);
-                    //
-                    //                    if (!cornersInside)
-                    //                        continue;
+                    // Check the other corners
+                    var cornersInside = isPointInside(first.getRow(), next.getColumn(), horizontalEdges, verticalEdges) &&
+                                        isPointInside(next.getRow(), first.getColumn(), horizontalEdges, verticalEdges);
+
+                    if (!cornersInside)
+                        continue;
 
                     // Check every point on the border to see if it's inside
 
                     // Start at the top-left and go clockwise
-                    Coordinate border = Coordinate.of(minRow, minColumn);
-                    boolean allInside = isPointInside(border, horizontalEdges, verticalEdges);
-                    while (allInside && border.getColumn() < maxColumn) {
-                        border = border.translate(Direction.RIGHT, 1);
-                        allInside &= isPointInside(border, horizontalEdges, verticalEdges);
+                    int row = minRow;
+                    int column = minColumn;
+                    boolean allInside = isPointInside(row, column, horizontalEdges, verticalEdges);
+                    while (allInside && column < maxColumn) {
+                        column++;
+                        allInside &= isPointInside(row, column, horizontalEdges, verticalEdges);
                     }
-                    while (allInside && border.getRow() < maxRow) {
-                        border = border.translate(Direction.DOWN, 1);
-                        allInside &= isPointInside(border, horizontalEdges, verticalEdges);
+                    while (allInside && row < maxRow) {
+                        row++;
+                        allInside &= isPointInside(row, column, horizontalEdges, verticalEdges);
                     }
-                    while (allInside && border.getColumn() > minColumn) {
-                        border = border.translate(Direction.LEFT, 1);
-                        allInside &= isPointInside(border, horizontalEdges, verticalEdges);
+                    while (allInside && column > minColumn) {
+                        column--;
+                        allInside &= isPointInside(row, column, horizontalEdges, verticalEdges);
                     }
-                    while (allInside && border.getRow() > minRow) {
-                        border = border.translate(Direction.UP, 1);
-                        allInside &= isPointInside(border, horizontalEdges, verticalEdges);
+                    while (allInside && row > minRow) {
+                        row--;
+                        allInside &= isPointInside(row, column, horizontalEdges, verticalEdges);
                     }
 
                     if (allInside)
                         // Save the area
-                        areas.put((long) (Math.abs(first.getRow() - next.getRow()) + 1) *
-                                  (Math.abs(first.getColumn() - next.getColumn()) + 1),
-                                  Pair.of(first, next));
+                        maxArea = area;
                 }
             }
         }
-        //        });
 
-        log.atDebug()
-           .setMessage("Areas:\n{}")
-           .addArgument(() -> areas.entrySet()
-                                   .stream()
-                                   .sorted(Comparator.comparing(Entry::getKey, Comparator.reverseOrder()))
-                                   .map(e -> "%d (%s and %s)".formatted(e.getKey(),
-                                                                        e.getValue().getLeft(),
-                                                                        e.getValue().getRight()))
-                                   .collect(Collectors.joining("\n")))
-           .log();
-
-        return areas.keySet().stream().mapToLong(Long::longValue).max().getAsLong();
+        return maxArea;
     }
 
 
@@ -284,22 +272,22 @@ public class Day09 {
      *         a positive and odd number of edges, or if the point is on an
      *         edge.
      */
-    private static boolean isPointInside(Coordinate point,
+    private static boolean isPointInside(int row, int column,
                                          MultiValuedMap<Integer, Range<Integer>> horizontalEdges,
                                          MultiValuedMap<Integer, Range<Integer>> verticalEdges) {
-        if (horizontalEdges.get(point.getRow()).stream().anyMatch(r -> r.contains(point.getColumn())) ||
-            verticalEdges.get(point.getColumn()).stream().anyMatch(r -> r.contains(point.getRow())))
+        if (horizontalEdges.get(row).stream().anyMatch(r -> r.contains(column)) ||
+            verticalEdges.get(column).stream().anyMatch(r -> r.contains(row)))
             return true;
 
         var edgesPassed = horizontalEdges.entries()
                                          .stream()
-                                         .filter(e -> e.getKey() <= point.getRow())
+                                         .filter(e -> e.getKey() <= row)
                                          .map(Entry::getValue)
-                                         .filter(r -> r.contains(point.getColumn()))
+                                         .filter(r -> r.contains(column))
                                          .count();
-        edgesPassed += verticalEdges.get(point.getColumn())
+        edgesPassed += verticalEdges.get(column)
                                     .stream()
-                                    .filter(r -> r.getMinimum() < point.getRow())
+                                    .filter(r -> r.getMinimum() < row)
                                     .count();
 
         return edgesPassed % 2 == 1;
