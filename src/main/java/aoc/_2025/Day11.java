@@ -2,11 +2,11 @@ package aoc._2025;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -219,6 +219,53 @@ public class Day11 {
         // "svr" to "out" is too complex (runs out of memory)
 
         // Determine all of the child nodes that a single node may reach
+        Map<String, Set<String>> childNodeMap = computeChildNodeMap(nodeMap);
+
+        // Use the child node map to reduce the search space of the counting of paths
+
+        // "dac" does not connect to "fft"
+        if (countPathsBetweenNodes(nodeMap, "dac", "fft") != 0) {
+            log.error("\"dac\" appears to connect to \"fft\"");
+            return -1;
+        }
+
+        // The path must go from "svr" to "fft", then to "dac", and finally "out" 
+        long paths = 1;
+
+        var irrelevantChildNodes = childNodeMap.entrySet()
+                                               .stream()
+                                               .filter(e -> !e.getValue().containsAll(Arrays.asList("fft", "dac", "out")))
+                                               .map(Entry::getKey)
+                                               .collect(Collectors.toSet());
+        paths = countPathsBetweenNodes(nodeMap, "svr", "fft", irrelevantChildNodes);
+
+        irrelevantChildNodes = childNodeMap.entrySet()
+                                           .stream()
+                                           .filter(e -> !e.getValue().containsAll(Arrays.asList("dac", "out")))
+                                           .map(Entry::getKey)
+                                           .collect(Collectors.toSet());
+        paths *= countPathsBetweenNodes(nodeMap, "fft", "dac", irrelevantChildNodes);
+
+        irrelevantChildNodes = childNodeMap.entrySet()
+                                           .stream()
+                                           .filter(e -> !e.getValue().contains("out"))
+                                           .map(Entry::getKey)
+                                           .collect(Collectors.toSet());
+        paths *= countPathsBetweenNodes(nodeMap, "dac", "out", irrelevantChildNodes);
+
+        return paths;
+    }
+
+
+
+    /**
+     * Create a map listing all child nodes of the known nodes.
+     * 
+     * @param nodeMap The known nodes.
+     * @return A map representing all of the eventual child nodes of each node
+     *         in the <code>nodeMap</code>.
+     */
+    private static Map<String, Set<String>> computeChildNodeMap(Map<String, List<String>> nodeMap) {
         Map<String, Set<String>> childNodeMap = new HashMap<>();
         Queue<String> nodesToCheck = new ArrayDeque<>();
 
@@ -265,19 +312,7 @@ public class Day11 {
                                           .map(e -> e.getKey() + ": " + e.getValue().stream().collect(Collectors.joining(" ")))
                                           .collect(Collectors.joining("\n")))
            .log();
-
-        // TODO Use the child node map to reduce the search space of the counting of paths
-
-        // "dac" does not connect to "fft"
-        if (countPathsBetweenNodes(nodeMap, "dac", "fft") != 0)
-            log.error("\"dac\" appears to connect to \"fft\"");
-
-        // The path must go from "svr" to "fft", then to "dac", and finally "out" 
-
-        //        return countPathsBetweenNodes(nodeMap, "svr", "fft", Set.of("dac", "out")); // Out of memory
-        //        return countPathsBetweenNodes(nodeMap, "fft", "dac", Set.of("out")); // Out of memory
-        return countPathsBetweenNodes(nodeMap, "dac", "out");
-
+        return childNodeMap;
     }
 
 }
