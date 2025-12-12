@@ -209,6 +209,10 @@ public class Day10 {
     /**
      * Given a {@link Machine}, figure out how few button presses are needed to
      * get it up to the required joltage levels.
+     * <p>
+     * NOTE This is the brute force approach which fails for more complex
+     * machines. The correct solution would involve treating the joltage values
+     * as the results of a system of equations based on the button configurations.
      * 
      * @param machine The configured {@link Machine} to start.
      * 
